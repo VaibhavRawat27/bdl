@@ -1,6 +1,6 @@
 load sales from "examples/sales.csv"
 
-preview sales 2
+previeew sales 2
 
 filter sales where region = "India"
 
