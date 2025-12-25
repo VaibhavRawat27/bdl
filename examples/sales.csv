@@ -1,4 +1,6 @@
-region,revenue,profit
-India,100000,25000
-USA,200000,50000
-India,150000,40000
+region,product,revenue,profit,units
+India,Phone,100000,25000,500
+India,Laptop,150000,40000,200
+USA,Phone,200000,50000,600
+USA,Laptop,300000,90000,300
+UK,Tablet,120000,30000,250

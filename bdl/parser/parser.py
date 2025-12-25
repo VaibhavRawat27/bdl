@@ -1,6 +1,9 @@
 from lark import Lark
+from pathlib import Path
 
-with open("bdl/parser/grammar.lark") as f:
+GRAMMAR_PATH = Path(__file__).parent / "grammar.lark"
+
+with open(GRAMMAR_PATH, encoding="utf-8") as f:
     grammar = f.read()
 
 parser = Lark(grammar, start="start")
