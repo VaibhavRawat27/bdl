@@ -1,0 +1,3 @@
+load sales from "examples/sales.csv"
+preview sales 2
+show sales
