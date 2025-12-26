@@ -1,6 +1,5 @@
+# bdl/parser.py
 def parse(line):
-    # very simple parser: splits line by spaces, first word = command
-    parts = line.strip().split()
-    if not parts:
-        return None
-    return parts
+    # naive parser: split by spaces
+    tokens = line.strip().split()
+    return tokens if tokens else None

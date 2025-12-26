@@ -1,6 +1,7 @@
-class BDLContext:
+# bdl/context.py
+class Context:
     def __init__(self):
-        self.tables = {}
+        self.tables = {}   # in-memory tables
         self.active = None
 
-context = BDLContext()
+context = Context()

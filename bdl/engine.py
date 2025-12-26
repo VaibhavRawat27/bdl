@@ -1,145 +1,109 @@
-import sys
-from bdl.parser import parse
-from bdl.engine import *
-from bdl.formatter import print_table
+# bdl/engine.py
 from bdl.context import context
-from bdl.errors import BDLException
-from bdl.version import BDL_VERSION
+from bdl.formatter import print_table
+import csv
 
-
-
-
-# =========================
-# HELP TEXT
-# =========================
-HELP_TEXT = """
-BDL — Data Language (v{version})
-
-USAGE:
-  bdl                     Start interactive shell
-  bdl run <file.bdl>      Run a BDL script
-  bdl --version | -v      Show version
-  bdl --help    | -h      Show this help
-  bdl help                Show this help
-
-CORE COMMANDS:
-  load "file.csv" as t
-  use t
-  columns
-  show [n]
-  filter where <condition>
-  search <column> for <value>
-  update <expr>
-  delete where <condition>
-  sort by <column> asc|desc
-  select col1,col2
-  group by <column> sum|avg|min|max <column>
-  join <table> on <col> = <col>
-  save "file.csv"
-
-EXIT:
-  exit | quit
-""".format(version=BDL_VERSION)
-
-
-# =========================
-# EXECUTOR
-# =========================
-def execute(line):
+# Load CSV file
+def load_csv(file_path, varname):
+    print(f"[load_csv] Loading '{file_path}' as '{varname}'")
     try:
-        t = parse(line)
-        if not t:
-            return
+        with open(file_path, newline='', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            context.tables[varname] = [row for row in reader]
+        context.active = varname
+        print_table(context.tables[varname])
+    except FileNotFoundError:
+        print(f"[Error] File '{file_path}' not found.")
+        context.tables[varname] = []
 
-        if t[0] == "load":
-            load_csv(t[1], t[3])
-            print(f"Loaded {t[1]} as {t[3]}")
+# Update expression (basic: profit = price - cost)
+def update_expr(expr):
+    print(f"[update_expr] {expr}")
+    table = context.tables.get(context.active, [])
+    if not table:
+        return
 
-        elif t[0] == "use":
-            context.active = t[1]
+    # Only supports 'profit = price - cost' format for now
+    parts = expr.replace(" ", "").split("=")
+    if len(parts) == 2:
+        col, operation = parts
+        if operation == "price-cost":
+            for row in table:
+                try:
+                    row[col] = float(row.get("price",0)) - float(row.get("cost",0))
+                except ValueError:
+                    row[col] = 0
+    print_table(table)
 
-        elif t[0] == "columns":
-            print(columns())
+# Filter rows (basic equality only)
+def filter_where(condition):
+    print(f"[filter_where] {condition}")
+    table = context.tables.get(context.active, [])
+    if not table:
+        return
 
-        elif t[0] == "show":
-            print_table(show(int(t[1]) if len(t) > 1 else 10))
+    # Only supports 'col == "value"'
+    if "==" in condition:
+        col, val = condition.split("==")
+        col = col.strip()
+        val = val.strip().strip('"')
+        table = [r for r in table if r.get(col) == val]
+        context.tables[context.active] = table
+    print_table(table)
 
-        elif t[0] == "filter":
-            filter_where(" ".join(t[2:]))
+# Group by (sum aggregation)
+def group_by(col, agg_col, agg_func='sum'):
+    print(f"[group_by] {col}, {agg_col}, {agg_func}")
+    table = context.tables.get(context.active, [])
+    grouped = {}
+    for r in table:
+        key = r[col]
+        grouped.setdefault(key, []).append(r)
 
-        elif t[0] == "search":
-            search(t[1], t[3])
+    new_table = []
+    for k, rows in grouped.items():
+        val = 0
+        if agg_func == 'sum':
+            for row in rows:
+                try:
+                    val += float(row.get(agg_col,0))
+                except ValueError:
+                    val += 0
+        new_table.append({col: k, agg_col: val})
+    context.tables[context.active] = new_table
+    print_table(new_table)
 
-        elif t[0] == "update":
-            update_expr(" ".join(t[1:]))
+# Sort by column
+def sort_by(col, order='asc'):
+    print(f"[sort_by] {col} {order}")
+    table = context.tables.get(context.active, [])
+    reverse = order.lower() == "desc"
+    try:
+        table.sort(key=lambda x: float(x.get(col,0)), reverse=reverse)
+    except ValueError:
+        table.sort(key=lambda x: x.get(col,''), reverse=reverse)
+    print_table(table)
 
-        elif t[0] == "delete":
-            delete_where(" ".join(t[2:]))
+# Show first n rows
+def show(n=10):
+    table = context.tables.get(context.active, [])
+    print_table(table[:n])
+    return table[:n]
 
-        elif t[0] == "sort":
-            sort_by(t[2], t[3])
+# Save CSV
+def save_csv(file_path):
+    print(f"[save_csv] Saving CSV to {file_path}")
+    table = context.tables.get(context.active, [])
+    if not table:
+        print("[Empty table]")
+        return
+    with open(file_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=list(table[0].keys()))
+        writer.writeheader()
+        writer.writerows(table)
+    print_table(table)
 
-        elif t[0] == "select":
-            select_cols(t[1].split(","))
-
-        elif t[0] == "group":
-            group_by(t[2], t[3], t[4])
-
-        elif t[0] == "join":
-            join_table(t[1], t[3], t[5])
-
-        elif t[0] == "save":
-            save_csv(t[1])
-            print("Saved.")
-
-        elif t[0] == "help":
-            print(HELP_TEXT)
-
-        else:
-            print("Unknown command. Type 'help'.")
-
-    except BDLException as e:
-        print(f"BDL Error: {e}")
-    except Exception as e:
-        print(f"System Error: {e}")
-
-
-# =========================
-# REPL
-# =========================
-def repl():
-    print(f"BDL v{BDL_VERSION} — Data Language")
-    print("Type 'help' for commands, 'exit' to quit.\n")
-
-    while True:
-        cmd = input("bdl> ").strip()
-
-        if cmd in ("exit", "quit"):
-            break
-
-        execute(cmd)
-
-
-# =========================
-# ENTRY POINT
-# =========================
-if __name__ == "__main__":
-
-    # ---- VERSION FLAG ----
-    if "--version" in sys.argv or "-v" in sys.argv:
-        print(f"BDL version {BDL_VERSION}")
-        sys.exit(0)
-
-    # ---- HELP FLAG ----
-    if "--help" in sys.argv or "-h" in sys.argv or "help" in sys.argv:
-        print(HELP_TEXT)
-        sys.exit(0)
-
-    # ---- SCRIPT MODE ----
-    if len(sys.argv) == 3 and sys.argv[1] == "run":
-        from runner import run_script
-        run_script(sys.argv[2])
-
-    # ---- INTERACTIVE MODE ----
-    else:
-        repl()
+# Columns
+def columns():
+    table = context.tables.get(context.active, [])
+    return list(table[0].keys()) if table else []
