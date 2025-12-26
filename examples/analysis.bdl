@@ -1,0 +1,7 @@
+load "sales.csv" as s
+update profit = price - cost
+filter where region == "Asia"
+group by product sum profit
+sort by profit desc
+show 10
+save "result.csv"

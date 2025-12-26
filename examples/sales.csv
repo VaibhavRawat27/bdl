@@ -1,6 +1,11 @@
-region,product,revenue,profit,units
-India,Phone,100000,25000,500
-India,Laptop,150000,40000,200
-USA,Phone,200000,50000,600
-USA,Laptop,300000,90000,300
-UK,Tablet,120000,30000,250
+order_id,customer,region,product,quantity,price,cost,date
+1001,Amit,Asia,Laptop,2,60000,50000,2024-01-10
+1002,Rahul,Europe,Phone,5,30000,22000,2024-01-12
+1003,Neha,Asia,Tablet,3,25000,18000,2024-01-15
+1004,Priya,America,Laptop,1,65000,52000,2024-01-18
+1005,Vikas,Asia,Phone,10,28000,21000,2024-01-20
+1006,Suman,Europe,Tablet,4,24000,19000,2024-01-22
+1007,Ankit,America,Phone,6,31000,23000,2024-01-25
+1008,Kiran,Asia,Laptop,3,62000,51000,2024-01-28
+1009,Meena,Europe,Laptop,2,64000,53000,2024-02-01
+1010,Rohit,Asia,Tablet,7,26000,20000,2024-02-05
